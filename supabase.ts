@@ -1,10 +1,25 @@
 import { createClient } from '@supabase/supabase-js';
 
-// 优先使用运行时配置，回退到构建时环境变量
-const supabaseUrl = (window as any).__APP_CONFIG__?.SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = (window as any).__APP_CONFIG__?.SUPABASE_ANON_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY;
+// 使用函数来延迟读取配置，确保 config.js 已加载
+function getSupabaseConfig() {
+  const supabaseUrl = (window as any).__APP_CONFIG__?.SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL;
+  const supabaseAnonKey = (window as any).__APP_CONFIG__?.SUPABASE_ANON_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-export const supabase = createClient(
-  supabaseUrl || 'https://placeholder.supabase.co',
-  supabaseAnonKey || 'placeholder'
-);
+  return {
+    url: supabaseUrl || 'https://placeholder.supabase.co',
+    key: supabaseAnonKey || 'placeholder'
+  };
+}
+
+// 延迟初始化 Supabase 客户端
+let supabaseInstance: ReturnType<typeof createClient> | null = null;
+
+export const supabase = new Proxy({} as ReturnType<typeof createClient>, {
+  get(target, prop) {
+    if (!supabaseInstance) {
+      const config = getSupabaseConfig();
+      supabaseInstance = createClient(config.url, config.key);
+    }
+    return (supabaseInstance as any)[prop];
+  }
+});

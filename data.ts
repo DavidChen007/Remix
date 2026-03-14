@@ -7,7 +7,12 @@ import { supabase } from "./supabase";
  */
 
 const isSupabaseConfigured = () => {
-  return import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY;
+  // 优先检查运行时配置 (window.__APP_CONFIG__)，再检查编译时环境变量
+  const runtimeUrl = (window as any).__APP_CONFIG__?.SUPABASE_URL;
+  const runtimeKey = (window as any).__APP_CONFIG__?.SUPABASE_ANON_KEY;
+  const buildTimeUrl = import.meta.env.VITE_SUPABASE_URL;
+  const buildTimeKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+  return (runtimeUrl || buildTimeUrl) && (runtimeKey || buildTimeKey);
 };
 
 const handleSupabaseError = (error: any) => {
